@@ -1,4 +1,6 @@
+from importlib.resources import Package
 from inspect import getfullargspec
+import io
 import os 
 import json
 from struct import pack
@@ -6,6 +8,7 @@ from zipfile import Path
 import camelot 
 import difflib 
 import subprocess
+import numpy as np 
 import pandas as pd
 import psycopg2 # postgres database 
 from PyPDF2 import PdfFileWriter, PdfFileReader
@@ -62,6 +65,7 @@ Pins_subpage_intersec = []
 Order_page_internsec = []
 Pins_Page_regroup  = {} 
 Order_page_regroup = {} 
+all_pins_info = {} 
 #Static parameters 
 n = 1
 n1 = 0
@@ -190,6 +194,8 @@ list_pdfdoc = os.listdir(PATH_SELECT)
 print("Check path document",list_pdfdoc) #Using the list of the doc on processing the data 
 Orderableoackage = config_data.get("Orderablepackage").get("Orderable") #Getting the package data from the search intersection                  
 print("Order config data ",Orderableoackage)
+configdata = Configure(listConfig[0])
+Pinstable = configdata.get("Specific_pins").get("Pins_header")  # Getting the specific pins to classify the data matching 
 for et in range(0,len(list_pdfdoc)):
                             
          pdf_list = list_pdfdoc[et].split(".")
@@ -267,6 +273,7 @@ for et in range(0,len(list_pdfdoc)):
                                                       print("Matching prob ",probdata)
                                                       check_pack_order[list_expins[files_ex].split(".")[0]] = probdata # Getting the data of the page to calculate the right page matching probability 
                                                       #Get_fullPinpage_cal(config_data,Path_to_Expins,list_expins[files_ex]) # Getting the full pins page 
+                                          
                                           except:
                                               pass
                                  #Pins page calculation percentage
@@ -332,16 +339,33 @@ for packs in range(0,len(Order_page_regroup)):
                      for pins in range(0,len(Pins_Page_regroup)):  # Only get the pins package from the found list in the Order package list if not this will only actracted the package with the name in the order package list                                  
                            if Pins_Page_regroup.get(list(Pins_Page_regroup)[pins]) == list(Order_page_regroup)[packs]:
                         
-                                      #print("Page pins match ", list(Pins_Page_regroup)[pins]) # Getting the page pins map data
+                                      print("Page pins match ", list(Pins_Page_regroup)[pins]) # Getting the page pins map data
+                                      
+                                      
                                       #Getting the data from the pins classification header 
                                       Getpath = Path_pins_read+"/"+list(Pins_Page_regroup)[pins]+".csv"
                                       print(Getpath)
                                       df = pd.read_csv(Getpath) #Getting the data frame 
-                                      print("Columns header of Pins",df.columns) # Getting the data of columns header in the pins
-                                      
+                                      print("Columns header of Pins",df.columns,type(df.columns)) # Getting the data of columns header in the pins
+                                      all_info_pack = df.values.tolist() 
+                                      for io_dat in range(0,len(df.values.tolist())): 
+                                                  #Getting the header pattern classifications
+                                                  #try:
+                                                        l_new=['missing' if x is np.nan else x for x in all_info_pack[io_dat]]
+                                                        mynewlist = [s for s in l_new if s.isdigit()] # Getting the list of data pack by getting only the pins values 
+                                                        if mynewlist != []:
+                                                            print('Row scanning',list(Order_page_regroup)[packs],df.values.tolist()[io_dat])
+                                                            all_pins_info[list(Order_page_regroup)[packs]] = df.values.tolist()[io_dat],mynewlist 
+                                                            #print("Colum scanning",df.columns.values[io_dat],df[df.columns.values[io_dat]].values.tolist())
+                                                        #print("Pins data in table is lesser than package for ", str(int(Package_info[4])-len(df[df.columns.values[io_dat]].values.tolist()))," Package pins amount ",Package_info[4])
+                                                  #except:
+                                                  #      print("All data in the list are string beginning collect extraction")
              except:
                 pass  
-for pins in range(0,len(Pins_Page_regroup)):
-        print("Getting the component name from the page input") 
-        print("Componentname and Page",list(Pins_Page_regroup)[pins],Pins_Page_regroup.get(list(Pins_Page_regroup)[pins]))
+print(all_pins_info)
+for pins in range(0,len(all_pins_info)): 
+             print(all_pins_info.get(list(all_pins_info)[pins]))
+#for pins in range(0,len(Pins_Page_regroup)):
+#        print("Getting the component name from the page input") 
+#        print("Componentname and Page",list(Pins_Page_regroup)[pins],Pins_Page_regroup.get(list(Pins_Page_regroup)[pins]))
         
